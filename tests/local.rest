@@ -1,0 +1,16 @@
+POST http://localhost:7071/api/hello
+content-type: application/json
+
+{
+    "name" : "Bablu"
+}
+
+###
+
+POST http://localhost:7071/api/copy-pbi-data
+content-type: application/json
+
+{
+    "filePath" : "/test.csv",
+    "fileContent" : "Hello Testing"
+}

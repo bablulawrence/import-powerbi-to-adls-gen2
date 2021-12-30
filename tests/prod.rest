@@ -1,0 +1,45 @@
+POST https://powerbi-xmla.azurewebsites.net/api/gettable?code=NnMlR6339xgp1FgVILyiKNGTi7yH6NMl3GvIaDlMLiIj0wrcxZHVaw==
+content-type: application/json
+
+{
+    "name" : "Bablu"
+}
+
+### 
+
+
+POST https://login.microsoftonline.com//0b55e01a-573a-4060-b656-d1a3d5815791/oauth2/v2.0/token
+Content-Type: application/x-www-form-urlencoded
+
+client_id=dd9a99b6-d6f6-4877-8e14-7b5f863b12c3
+&client_secret=VFd7Q~xLOy7JMBqK63I._oUSbmDlf16G4UGu7
+&grant_type=client_credentials
+&scope=https://analysis.windows.net/powerbi/api/.default
+
+
+### 
+
+POST https://api.powerbi.com/v1.0/myorg/datasets/8c2c0fd4-cf71-44f7-92be-4db502286acb/executeQueries
+Content-Type: application/json
+Authorization: Bearer {{$aadV2Token appOnly}}
+
+{
+  "queries":[
+    {
+      "query":"EVALUATE (
+                      TOPN (
+                        10,
+                        SUMMARIZECOLUMNS (
+                          'Store'[Name]                          
+                        ),
+                        'Store'[Name],1
+                      )
+                    )"      			 
+    }
+  ],
+  "serializerSettings":{
+    "incudeNulls":true
+  }
+}
+
+
