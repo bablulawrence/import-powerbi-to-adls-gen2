@@ -16,6 +16,15 @@ client_id=dd9a99b6-d6f6-4877-8e14-7b5f863b12c3
 &grant_type=client_credentials
 &scope=https://analysis.windows.net/powerbi/api/.default
 
+### 
+
+POST https://powerbi-dax.azurewebsites.net/api/copy-pbi-data?code=tc6mi3/gIwtP6yR6pKWIk9bYOa4brY5L77TOWXsH06oa98OYQ6w3HA==
+content-type: application/json
+
+{
+    "filePath" : "/test2.csv",
+    "fileContent" : "Hello Testing"
+}
 
 ### 
 
