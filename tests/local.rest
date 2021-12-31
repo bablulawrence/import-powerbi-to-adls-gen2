@@ -11,6 +11,18 @@ POST http://localhost:7071/api/copy-pbi-data
 content-type: application/json
 
 {
-    "filePath" : "/test.csv",
-    "fileContent" : "Hello Testing"
+    "datasetId" : "8c2c0fd4-cf71-44f7-92be-4db502286acb",
+    "tableName" : "Store",
+    "filePath" : "/retail_analysis/stores.json"
+}
+
+###
+
+POST http://localhost:7071/api/copy-pbi-data
+content-type: application/json
+
+{
+    "datasetId" : "8c2c0fd4-cf71-44f7-92be-4db502286acb",
+    "tableName" : "District",
+    "filePath" : "/retail_analysis/district.json"
 }
