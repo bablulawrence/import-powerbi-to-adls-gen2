@@ -19,10 +19,10 @@ def get_adls_gen2_service_client(credential, storage_account_name):
         account_url=f"https://{storage_account_name}.dfs.core.windows.net",
         credential=credential)
 
-def query_dataset(credential, datasetId, tableName): 
+def query_dataset(credential, datasetId, tableName, topNRows): 
     url = f"https://api.powerbi.com/v1.0/myorg/datasets/{datasetId}/executeQueries"    
     daxQuery = json.dumps({
-                "queries": [{ "query": f"EVALUATE('{tableName}')"}],
+                "queries": [{ "query": f"EVALUATE TOPN({topNRows}, '{tableName}')"}],
                 "serializerSettings": { "incudeNulls": True }
         })
     try: 
@@ -46,11 +46,12 @@ def upload_file(service_client, container_name, file_path, data):
         raise
 
 def parse_agruments(req):
-    table_name = req.params.get('tableName')
     dataset_id = req.params.get('datasetId')
+    table_name = req.params.get('tableName')
+    top_n_rows = req.params.get('tableNRows')
     file_path = req.params.get('filePath')
     
-    if not (dataset_id or table_name or file_path):
+    if not (dataset_id or table_name or top_n_rows or file_path):
         try:
             req_body = req.get_json()
         except Exception as e:
@@ -61,7 +62,13 @@ def parse_agruments(req):
         if not (table_name):
             table_name = req_body.get('tableName')
         if not (file_path):
-            file_path = req_body.get('filePath')    
+            file_path = req_body.get('filePath')
+        if not (top_n_rows):
+            top_n_rows = req_body.get('topNRows')    
+    
+    if not (top_n_rows):
+            top_n_rows = 100000 #Set to the maximum rows allowed for query
+    
     
     if not (dataset_id or table_name or file_path):
         if not dataset_id:
@@ -72,7 +79,10 @@ def parse_agruments(req):
             logging.exception("File path is missing")
         raise Exception("One or more of required parameters are missing")
 
-    return { "datasetId": dataset_id, "tableName": table_name, "filePath" : file_path }
+    return { "datasetId": dataset_id, 
+            "tableName": table_name, 
+            "topNRows": top_n_rows, 
+            "filePath" : file_path }
 
 
 
@@ -90,8 +100,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         service_client = get_adls_gen2_service_client(credential, storage_account_name)
 
         logging.info(f"Quering table {args['tableName']} in dataset {args['datasetId']}")    
-        data = query_dataset(credential, args['datasetId'], args['tableName'])        
-
+        data = query_dataset(credential, args['datasetId'], 
+                                args['tableName'], args['topNRows'])        
+        logging.warning(data)
         logging.info(f"Copying data to file {args['filePath']}")    
         upload_file(service_client, container_name, args['filePath'], json.dumps(data))
 

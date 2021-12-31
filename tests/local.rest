@@ -26,3 +26,26 @@ content-type: application/json
     "tableName" : "District",
     "filePath" : "/retail_analysis/district.json"
 }
+
+###
+
+POST http://localhost:7071/api/get-table-data
+content-type: application/json
+
+{
+    "datasetId" : "8c2c0fd4-cf71-44f7-92be-4db502286acb",
+    "tableName" : "Sales",
+    "filePath" : "/retail_analysis/sales.json"
+}
+
+###
+
+POST http://localhost:7071/api/get-table-data
+content-type: application/json
+
+{
+    "datasetId" : "8c2c0fd4-cf71-44f7-92be-4db502286acb",
+    "tableName" : "Sales",
+    "topNRows": 1000, 
+    "filePath" : "/retail_analysis/sales.json"
+}
