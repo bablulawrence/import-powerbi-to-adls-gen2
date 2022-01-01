@@ -16,6 +16,15 @@ client_id=dd9a99b6-d6f6-4877-8e14-7b5f863b12c3
 &grant_type=client_credentials
 &scope=https://analysis.windows.net/powerbi/api/.default
 
+### 
+
+POST https://powerbi-dax.azurewebsites.net/api/copy-pbi-data?code=tc6mi3/gIwtP6yR6pKWIk9bYOa4brY5L77TOWXsH06oa98OYQ6w3HA==
+content-type: application/json
+
+{
+    "filePath" : "/test2.csv",
+    "fileContent" : "Hello Testing"
+}
 
 ### 
 
@@ -42,4 +51,16 @@ Authorization: Bearer {{$aadV2Token appOnly}}
   }
 }
 
+
+###
+
+POST https://powerbi-dax.azurewebsites.net/api/get-table-data?code=1GQrddCQXpSpXle8xYlc0mGJOiBMy4HhjYgzaRgBascXRpye2EPGXQ==
+content-type: application/json
+
+{
+    "datasetId" : "8c2c0fd4-cf71-44f7-92be-4db502286acb",
+    "tableName" : "Sales",
+    "topNRows": 1000, 
+    "filePath" : "/retail_analysis/sales.json"
+}
 
