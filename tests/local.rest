@@ -74,3 +74,30 @@ content-type: application/json
     "topNRows": 2,
     "filePath" : "/retail_analysis/store.csv"
 }
+
+###
+POST http://localhost:7071/api/get-table-data/8c2c0fd4-cf71-44f7-92be-4db502286acb/store
+content-type: application/json
+
+{
+    "topNRows": 2,
+    "convertToCsv": true,  
+    "filePath" : "/retail_analysis/store.csv"
+}
+
+###
+POST http://localhost:7071/api/get-table-data/8c2c0fd4-cf71-44f7-92be-4db502286acb/store
+content-type: application/json
+
+{
+    "topNRows": 2
+}
+
+###
+POST http://localhost:7071/api/get-table-data/8c2c0fd4-cf71-44f7-92be-4db502286acb/district1
+content-type: application/json
+
+{
+    "topNRows": 2,
+    "convertToCsv": false
+}

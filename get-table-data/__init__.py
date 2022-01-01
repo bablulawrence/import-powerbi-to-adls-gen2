@@ -3,8 +3,9 @@ import json
 import logging
 import requests
 import pandas as pd
-from io import StringIO
 import azure.functions as func
+from io import StringIO
+from urllib.parse import parse_qs
 from azure.identity import DefaultAzureCredential
 from azure.storage.filedatalake import DataLakeServiceClient
 
@@ -33,10 +34,10 @@ def query_dataset(credential, dataset_id, table_name, top_n_rows):
         r = requests.post(url, headers=headers, data=daxQuery)
         r.encoding='utf-8-sig'
         data = json.dumps((r.json())['results'][0]['tables'][0]['rows'])
+        return data
     except Exception as e:
         logging.exception(e)
         raise
-    return data
 
 def convert_to_csv(data): 
     df = pd.read_json(StringIO(data), orient='records')
@@ -53,50 +54,37 @@ def upload_file(service_client, container_name, file_path, data):
         raise
 
 def parse_agruments(req):
-    dataset_id = req.params.get('datasetId')
-    table_name = req.params.get('tableName')
-    top_n_rows = req.params.get('tableNRows')
-    convert_to_csv = req.params.get('convertToCsv')
-    file_path = req.params.get('filePath')
     
-    if not (dataset_id or table_name or top_n_rows or file_path):
-        try:
-            req_body = req.get_json()
-        except Exception as e:
-            logging.exception(e)
-            raise
-        if not (dataset_id):
-            dataset_id = req_body.get('datasetId')
-        if not (table_name):
-            table_name = req_body.get('tableName')
-        if not (file_path):
-            file_path = req_body.get('filePath')
-        if not (top_n_rows):
-            top_n_rows = req_body.get('topNRows')    
-        if not (convert_to_csv):
-            convert_to_csv = req_body.get('convertToCsv')    
-    
+    try:
+        args = {
+            'datasetId': req.route_params.get('datasetId'), 
+            'tableName': req.route_params.get('tableName')
+        }
+        req_body = req.get_json()
 
-    if not (dataset_id or table_name or file_path):
-        if not dataset_id:
-            logging.exception("Dataset id is missing")
-        if not table_name:
-            logging.exception("Table name is missing")
-        if not file_path:
-            logging.exception("File path is missing")
-        raise Exception("One or more of required parameters are missing")
+        if ('topNRows' not in req_body): 
+            args['topNRows'] = 100000 #Set default to the maximum 100,000 rows allowed for a Power BI Tables
+        else:
+            args['topNRows'] = req_body['topNRows']
 
-    if (top_n_rows is None): 
-        top_n_rows = 100000 #Set default to 100000 rows
+        if ('convertToCsv' not in req_body): 
+            args['convertToCsv'] = True #Convert to CSV by default
+        else:
+            args['convertToCsv'] = req_body['convertToCsv']
+                
+        if ('filePath' not in req_body): #Default file path is /<container name>/<dataset id>/<table name>.csv or .json
+            if (args['convertToCsv']):
+                args['filePath'] = f"/{args['datasetId']}/{args['tableName']}.csv" 
+            else:
+                args['filePath'] = f"/{args['datasetId']}/{args['tableName']}.json" 
+        else:
+            args['filePath'] = req_body['filePath']
 
-    if (convert_to_csv is None): 
-        convert_to_csv = True #Convert to CSV by default
-
-    return { "datasetId": dataset_id, 
-            "tableName": table_name, 
-            "topNRows": top_n_rows, 
-            "convertToCsv": convert_to_csv, 
-            "filePath" : file_path }
+        logging.error(json.dumps(args))
+        return args        
+    except Exception as e:
+        logging.exception(e)
+        raise
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
@@ -117,7 +105,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
         data = query_dataset(credential, args['datasetId'], 
                                 args['tableName'],  args['topNRows'])        
-
+        logging.error(json.dumps(args))
         logging.info(f"Copying data to file {args['filePath']}")    
         if (args['convertToCsv']):
             upload_file(service_client, container_name, args['filePath'], convert_to_csv(data))
