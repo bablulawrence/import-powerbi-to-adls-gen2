@@ -52,3 +52,15 @@ Authorization: Bearer {{$aadV2Token appOnly}}
 }
 
 
+###
+
+POST https://powerbi-dax.azurewebsites.net/api/get-table-data?code=1GQrddCQXpSpXle8xYlc0mGJOiBMy4HhjYgzaRgBascXRpye2EPGXQ==
+content-type: application/json
+
+{
+    "datasetId" : "8c2c0fd4-cf71-44f7-92be-4db502286acb",
+    "tableName" : "Sales",
+    "topNRows": 1000, 
+    "filePath" : "/retail_analysis/sales.json"
+}
+

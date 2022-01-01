@@ -1,4 +1,6 @@
 requests
+pandas
+fsspec
 azure-functions
 azure-identity
 azure-storage-file-datalake
