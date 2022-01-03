@@ -33,8 +33,29 @@ def query_dataset(credential, dataset_id, table_name, top_n_rows):
         headers = { "Content-Type" : "application/json", "Authorization": f"Bearer {token}"}
         r = requests.post(url, headers=headers, data=daxQuery)
         r.encoding='utf-8-sig'
-        data = json.dumps((r.json())['results'][0]['tables'][0]['rows'])
-        return data
+        logging.error(r.status_code)
+        logging.error(json.dumps(r.json()))
+        if (r.status_code == 200):
+            return { 
+                'statusCode': r.status_code, 
+                'data': (r.json())['results'][0]['tables'][0]['rows'] 
+            }
+        else:
+            c = r.status_code
+            e = r.json()['error']           
+            if (c == 400):            
+                if ('errorCode' in e and 'Cannot find table' in e['message']):
+                    return { 'statusCode': 404, 'errorMessage': f'Table {table_name} is not found' }            
+                elif ('code' in e and e['code'] == 'StorageInvalidData'):
+                    return { 'statusCode': 400, 'errorMessage': f'The dataset id {dataset_id} is not a valid GUID' }
+                else: 
+                    return { 'statusCode': 400, 'errorMessage': f'Power BI Dataset query failed' }                
+            elif (c == 404):
+                if ('code' in e and e['code'] == 'PowerBIEntityNotFound'):
+                        return { 'statusCode': 404, 'errorMessage': f'The dataset id {dataset_id} is not found' }                
+                else:
+                    return { 'statusCode': c, 'errorMessage': f'Power BI Dataset query failed' }                
+
     except Exception as e:
         logging.exception(e)
         raise
@@ -48,7 +69,8 @@ def upload_file(service_client, container_name, file_path, data):
         file_system_client = service_client.get_file_system_client(
             file_system=container_name)
         file_client = file_system_client.get_file_client(file_path)
-        file_client.upload_data(data, overwrite=True)
+        r = file_client.upload_data(data, overwrite=True)
+        return { 'filePath': f"{container_name}/{file_path}", "request_id": r['request_id'] } 
     except Exception as e:
         logging.exception(e)
         raise
@@ -60,8 +82,8 @@ def parse_agruments(req):
             'datasetId': req.route_params.get('datasetId'), 
             'tableName': req.route_params.get('tableName')
         }
-        req_body = req.get_json()
 
+        req_body = req.get_json()
         if ('topNRows' not in req_body): 
             args['topNRows'] = 100000 #Set default to the maximum 100,000 rows allowed for a Power BI Tables
         else:
@@ -80,7 +102,6 @@ def parse_agruments(req):
         else:
             args['filePath'] = req_body['filePath']
 
-        logging.error(json.dumps(args))
         return args        
     except Exception as e:
         logging.exception(e)
@@ -103,16 +124,20 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         
         logging.info(f"Quering table {args['tableName']} in dataset {args['datasetId']}")           
 
-        data = query_dataset(credential, args['datasetId'], 
+        queryRes = query_dataset(credential, args['datasetId'], 
                                 args['tableName'],  args['topNRows'])        
-        logging.error(json.dumps(args))
-        logging.info(f"Copying data to file {args['filePath']}")    
-        if (args['convertToCsv']):
-            upload_file(service_client, container_name, args['filePath'], convert_to_csv(data))
-        else: 
-            upload_file(service_client, container_name, args['filePath'],data)
-
-        return func.HttpResponse("Ok", status_code=200)
+        logging.info(f"Uploading data to file {args['filePath']}")    
+        if (queryRes['statusCode'] == 200):
+            if (args['convertToCsv']):
+                uploadRes = upload_file(service_client, container_name, args['filePath'], 
+                            convert_to_csv(json.dumps(queryRes['data'])))
+            else: 
+                uploadRes = upload_file(service_client, container_name, args['filePath'],
+                            json.dumps(queryRes['data']))
+            return func.HttpResponse(json.dumps(uploadRes), status_code=200)
+        else:
+            logging.exception(queryRes['errorMessage'])
+            return func.HttpResponse(queryRes['errorMessage'], status_code=queryRes['statusCode'] )
     except Exception as e:
         logging.exception(e)
-        return func.HttpResponse("One or more errors occured", status_code=500)
+        return func.HttpResponse("Internal error", status_code=500)

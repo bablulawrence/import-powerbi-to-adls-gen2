@@ -90,7 +90,7 @@ POST http://localhost:7071/api/get-table-data/8c2c0fd4-cf71-44f7-92be-4db502286a
 content-type: application/json
 
 {
-    "topNRows": 2
+    "topNRows": 3
 }
 
 ###
