@@ -101,3 +101,20 @@ content-type: application/json
     "topNRows": 2,
     "convertToCsv": false
 }
+
+###
+POST http://localhost:7071/api/query-table-data/8c2c0fd4-cf71-44f7-92be-4db502286acb/executeQuery
+content-type: application/json
+
+{
+    "daxQuery": {
+                    "queries":[
+                        {
+                           "query":"EVALUATE(store)"      			 
+                        }
+                    ],
+                    "serializerSettings":{
+                        "incudeNulls":true
+                    }
+    }
+}
