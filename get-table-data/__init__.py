@@ -70,7 +70,7 @@ def upload_file(service_client, container_name, file_path, data):
             file_system=container_name)
         file_client = file_system_client.get_file_client(file_path)
         r = file_client.upload_data(data, overwrite=True)
-        return { 'filePath': f"{container_name}/{file_path}", "request_id": r['request_id'] } 
+        return { 'filePath': f"{container_name}{file_path}", "request_id": r['request_id'] } 
     except Exception as e:
         logging.exception(e)
         raise
