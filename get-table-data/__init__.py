@@ -6,33 +6,15 @@ import pandas as pd
 import azure.functions as func
 from io import StringIO
 from urllib.parse import parse_qs
-from azure.identity import DefaultAzureCredential
-from azure.storage.filedatalake import DataLakeServiceClient
-
-
-def get_credential():
-    """
-    Gets Azure AD auth credential.
-    """
-    return DefaultAzureCredential()
-
-
-def get_adls_gen2_service_client(credential, storage_account_name):
-    return DataLakeServiceClient(
-        account_url=f"https://{storage_account_name}.dfs.core.windows.net",
-        credential=credential)
+from utils import *
 
 def query_dataset(credential, dataset_id, table_name, top_n_rows):    
-    url = f"https://api.powerbi.com/v1.0/myorg/datasets/{dataset_id}/executeQueries"        
     try: 
         daxQuery = json.dumps({
                 "queries": [{ "query": f"EVALUATE TOPN({top_n_rows}, '{table_name}')"}],
                 "serializerSettings": { "incudeNulls": True }
         })
-        token = credential.get_token("https://analysis.windows.net/powerbi/api/.default").token
-        headers = { "Content-Type" : "application/json", "Authorization": f"Bearer {token}"}
-        r = requests.post(url, headers=headers, data=daxQuery)
-        r.encoding='utf-8-sig'
+        r = execute_dax_query(credential, dataset_id, daxQuery)
         logging.error(r.status_code)
         logging.error(json.dumps(r.json()))
         if (r.status_code == 200):
@@ -56,21 +38,6 @@ def query_dataset(credential, dataset_id, table_name, top_n_rows):
                 else:
                     return { 'statusCode': c, 'errorMessage': f'Power BI Dataset query failed' }                
 
-    except Exception as e:
-        logging.exception(e)
-        raise
-
-def convert_to_csv(data): 
-    df = pd.read_json(StringIO(data), orient='records')
-    return df.to_csv(index = False)
-
-def upload_file(service_client, container_name, file_path, data):
-    try:
-        file_system_client = service_client.get_file_system_client(
-            file_system=container_name)
-        file_client = file_system_client.get_file_client(file_path)
-        r = file_client.upload_data(data, overwrite=True)
-        return { 'filePath': f"{container_name}{file_path}", "request_id": r['request_id'] } 
     except Exception as e:
         logging.exception(e)
         raise
