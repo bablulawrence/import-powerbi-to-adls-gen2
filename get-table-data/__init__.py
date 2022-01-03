@@ -15,8 +15,6 @@ def query_dataset(credential, dataset_id, table_name, top_n_rows):
                 "serializerSettings": { "incudeNulls": True }
         })
         r = execute_dax_query(credential, dataset_id, daxQuery)
-        logging.error(r.status_code)
-        logging.error(json.dumps(r.json()))
         if (r.status_code == 200):
             return { 
                 'statusCode': r.status_code, 
@@ -89,7 +87,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         logging.info(f"Creating ADLS Gen2 service client")
         service_client = get_adls_gen2_service_client(credential, storage_account_name)
         
-        logging.info(f"Quering table {args['tableName']} in dataset {args['datasetId']}")           
+        logging.info(f"Querying table {args['tableName']} in dataset {args['datasetId']}")           
 
         queryRes = query_dataset(credential, args['datasetId'], 
                                 args['tableName'],  args['topNRows'])        
