@@ -7,9 +7,9 @@
       "direction": "in",
       "name": "req",
       "methods": [
-        "get",
         "post"
-      ]
+      ],
+      "route": "query-table-data/{datasetId}/executeQuery"
     },
     {
       "type": "http",

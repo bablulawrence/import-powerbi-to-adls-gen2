@@ -8,13 +8,9 @@ from io import StringIO
 from urllib.parse import parse_qs
 from utils import *
 
-def query_dataset(credential, dataset_id, table_name, top_n_rows):    
+def query_dataset(credential, dataset_id, daxQuery):    
     try: 
-        daxQuery = json.dumps({
-                "queries": [{ "query": f"EVALUATE TOPN({top_n_rows}, '{table_name}')"}],
-                "serializerSettings": { "incudeNulls": True }
-        })
-        r = execute_dax_query(credential, dataset_id, daxQuery)
+        r = execute_dax_query(credential, dataset_id, json.dumps(daxQuery))
         if (r.status_code == 200):
             return { 
                 'statusCode': r.status_code, 
@@ -25,7 +21,7 @@ def query_dataset(credential, dataset_id, table_name, top_n_rows):
             e = r.json()['error']           
             if (c == 400):            
                 if ('errorCode' in e and 'Cannot find table' in e['message']):
-                    return { 'statusCode': 404, 'errorMessage': f'Table {table_name} is not found' }            
+                    return { 'statusCode': 404, 'errorMessage': f'Table is not found' }            
                 elif ('code' in e and e['code'] == 'StorageInvalidData'):
                     return { 'statusCode': 400, 'errorMessage': f'The dataset id {dataset_id} is not a valid GUID' }
                 else: 
@@ -43,30 +39,25 @@ def query_dataset(credential, dataset_id, table_name, top_n_rows):
 def parse_agruments(req):
     
     try:
-        args = {
-            'datasetId': req.route_params.get('datasetId'), 
-            'tableName': req.route_params.get('tableName')
-        }
-
+        args = {  'datasetId': req.route_params.get('datasetId')  }
         req_body = req.get_json()
-        if ('topNRows' not in req_body): 
-            args['topNRows'] = 100000 #Set default to the maximum 100,000 rows allowed for a Power BI Tables
+        if ('daxQuery' not in req_body): 
+            raise Exception("Query cannot be null")
         else:
-            args['topNRows'] = req_body['topNRows']
+            args['daxQuery'] = req_body['daxQuery']
 
         if ('convertToCsv' not in req_body): 
             args['convertToCsv'] = True #Convert to CSV by default
         else:
             args['convertToCsv'] = req_body['convertToCsv']
                 
-        if ('filePath' not in req_body): #Default file path is /<container name>/<dataset id>/<table name>.csv or .json
+        if ('filePath' not in req_body): #Default file path is /<container name>/<dataset id>/query_data.csv or .json
             if (args['convertToCsv']):
-                args['filePath'] = f"/{args['datasetId']}/{args['tableName']}.csv" 
+                args['filePath'] = f"/{args['datasetId']}/query_data.csv" 
             else:
-                args['filePath'] = f"/{args['datasetId']}/{args['tableName']}.json" 
+                args['filePath'] = f"/{args['datasetId']}/query_data.json" 
         else:
             args['filePath'] = req_body['filePath']
-
         return args        
     except Exception as e:
         logging.exception(e)
@@ -87,10 +78,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         logging.info(f"Creating ADLS Gen2 service client")
         service_client = get_adls_gen2_service_client(credential, storage_account_name)
         
-        logging.info(f"Querying table {args['tableName']} in dataset {args['datasetId']}")           
+        logging.info(f"Executive query against dataset {args['datasetId']}")           
 
-        queryRes = query_dataset(credential, args['datasetId'], 
-                                args['tableName'],  args['topNRows'])        
+        queryRes = query_dataset(credential, args['datasetId'], args['daxQuery'])        
         logging.info(f"Uploading data to file {args['filePath']}")    
         if (queryRes['statusCode'] == 200):
             if (args['convertToCsv']):

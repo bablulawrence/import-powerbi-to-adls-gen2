@@ -62,11 +62,7 @@ coverage.xml
 venv/
 ENV/
 
-#local settings
+#local settings and tests
 local.settings.json
+local
 
-#getting started
-getting_started.md
-
-#test function
-Hello/
