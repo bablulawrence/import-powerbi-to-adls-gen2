@@ -10,17 +10,17 @@ from azure.identity import DefaultAzureCredential
 from azure.storage.filedatalake import DataLakeServiceClient
 
 def get_credential():
-    """
-    Gets Azure AD auth credential.
-    """
+    """Gets Azure AD auth credential."""
     return DefaultAzureCredential()
 
 def get_adls_gen2_service_client(credential, storage_account_name):
+    """Created ADLS Gen2 Service Client"""
     return DataLakeServiceClient(
         account_url=f"https://{storage_account_name}.dfs.core.windows.net",
         credential=credential)
 
 def execute_dax_query(credential, dataset_id, daxQuery):
+    """Execute DAX query"""
     url = f"https://api.powerbi.com/v1.0/myorg/datasets/{dataset_id}/executeQueries"        
     try: 
         token = credential.get_token("https://analysis.windows.net/powerbi/api/.default").token
@@ -33,10 +33,12 @@ def execute_dax_query(credential, dataset_id, daxQuery):
         raise
 
 def convert_to_csv(data): 
+    """Convert JSON to CSV"""
     df = pd.read_json(StringIO(data), orient='records')
     return df.to_csv(index = False)
 
 def upload_file(service_client, container_name, file_path, data):
+    """Upload File to the specified ADLS Gen 2 path"""
     try:
         file_system_client = service_client.get_file_system_client(
             file_system=container_name)

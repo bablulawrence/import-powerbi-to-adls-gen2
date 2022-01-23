@@ -9,6 +9,7 @@ from urllib.parse import parse_qs
 from utils import *
 
 def query_dataset(credential, dataset_id, table_name, top_n_rows):    
+    """Execute DAX query to get data from the table"""
     try: 
         daxQuery = json.dumps({
                 "queries": [{ "query": f"EVALUATE TOPN({top_n_rows}, '{table_name}')"}],
@@ -41,7 +42,7 @@ def query_dataset(credential, dataset_id, table_name, top_n_rows):
         raise
 
 def parse_agruments(req):
-    
+    """Parse Argument from HTTP request"""
     try:
         args = {
             'datasetId': req.route_params.get('datasetId'), 
@@ -82,20 +83,20 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         args = parse_agruments(req)        
                 
         logging.info(f"Getting credential")
-        credential = get_credential()
+        credential = get_credential() #Get credential from Azure AD
 
         logging.info(f"Creating ADLS Gen2 service client")
-        service_client = get_adls_gen2_service_client(credential, storage_account_name)
+        service_client = get_adls_gen2_service_client(credential, storage_account_name) #Create ADLS Gen2 service client 
         
         logging.info(f"Querying table {args['tableName']} in dataset {args['datasetId']}")           
 
         queryRes = query_dataset(credential, args['datasetId'], 
-                                args['tableName'],  args['topNRows'])        
+                                args['tableName'],  args['topNRows']) #Execute DAX query to get the table data in JSON format
         logging.info(f"Uploading data to file {args['filePath']}")    
         if (queryRes['statusCode'] == 200):
-            if (args['convertToCsv']):
+            if (args['convertToCsv']): # Covert table data to CSV(optionally) and upload to ADLS Gen 2
                 uploadRes = upload_file(service_client, container_name, args['filePath'], 
-                            convert_to_csv(json.dumps(queryRes['data'])))
+                            convert_to_csv(json.dumps(queryRes['data']))) 
             else: 
                 uploadRes = upload_file(service_client, container_name, args['filePath'],
                             json.dumps(queryRes['data']))
